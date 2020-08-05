@@ -2,7 +2,10 @@ using Editor.SceneViewEditor.Source.Extensions;
 using Editor.SceneViewEditor.Source.Interfaces;
 using UnityEditor;
 using UnityEngine;
+
+#if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
+#endif
 
 namespace Editor.SceneViewEditor.Source.Customs
 {
