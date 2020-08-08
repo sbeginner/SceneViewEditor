@@ -1,5 +1,5 @@
 ﻿using System.Linq;
-using Editor.SceneViewEditor.Source.Customs;
+using Editor.SceneViewEditor.Source.Windows;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -14,9 +14,9 @@ namespace Editor.SceneViewEditor.Tests
         [SetUp]
         public void Common_Setup()
         {
-            var camera = SceneView.GetAllSceneCameras().FirstOrDefault();
-
             _windowFactory = new Window.Factory();
+
+            var camera = SceneView.GetAllSceneCameras().FirstOrDefault();
             _mockHandler = new WindowHandler(_windowFactory, camera);
 
             Assert.IsNotNull(_windowFactory);
@@ -50,6 +50,7 @@ namespace Editor.SceneViewEditor.Tests
             var window = _windowFactory.Create(settings);
 
             Assert.IsFalse(window.IsActive);
+            UnityEngine.Assertions.Assert.IsNull(window.Transform);
         }
 
         [Test]

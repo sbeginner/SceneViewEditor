@@ -1,5 +1,6 @@
+using System.IO;
 using System.Linq;
-using Editor.SceneViewEditor.Source.Customs;
+using Editor.SceneViewEditor.Source.Windows;
 using UnityEditor;
 using UnityEngine;
 
@@ -15,18 +16,24 @@ namespace Editor.SceneViewEditor.Source
         }
 
         public State CurrentState { get; private set; } = State.None;
+
+        private readonly string _customGUISkinUri = Path.Combine("Assets",
+            "Scripts/Editor/SceneViewEditor/Skins",
+            "CustomGUISkin.guiskin");
+
         private WindowHandler _windowHandler;
         private GUISkin _defaultGuiSkin;
 
         public void OnEnable()
         {
             CurrentState = State.OnEnable;
-            
+
             var camera = SceneView.GetAllSceneCameras().FirstOrDefault();
             var factory = new Window.Factory();
             _windowHandler = new WindowHandler(factory, camera);
 
-            SceneView.beforeSceneGui += OnGUIInitialize;
+            _defaultGuiSkin = GetSkin();
+
             SceneView.duringSceneGui += OnSceneGUIUpdate;
             SceneView.RepaintAll();
 
@@ -37,19 +44,15 @@ namespace Editor.SceneViewEditor.Source
         {
             CurrentState = State.OnDisable;
 
-            SceneView.beforeSceneGui -= OnGUIInitialize;
             SceneView.duringSceneGui -= OnSceneGUIUpdate;
             SceneView.RepaintAll();
 
             Selection.selectionChanged = null;
         }
 
-        private void OnGUIInitialize(SceneView _)
+        private GUISkin GetSkin()
         {
-            _defaultGuiSkin =
-                AssetDatabase.LoadAssetAtPath<GUISkin>("Assets/Scripts/Editor/SceneViewEditor/CustomGUISkin.guiskin");
-            
-            SceneView.beforeSceneGui -= OnGUIInitialize;
+            return AssetDatabase.LoadAssetAtPath<GUISkin>(_customGUISkinUri);
         }
 
         private void OnSceneSelectedObjects()
@@ -60,7 +63,7 @@ namespace Editor.SceneViewEditor.Source
         private void OnSceneGUIUpdate(SceneView _)
         {
             GUI.skin = _defaultGuiSkin;
-            
+
             _windowHandler.OnSceneGUIUpdate();
         }
     }

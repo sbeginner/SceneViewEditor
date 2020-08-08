@@ -4,13 +4,14 @@ using Editor.SceneViewEditor.Source.Interfaces;
 using UnityEditor;
 using UnityEngine;
 
-namespace Editor.SceneViewEditor.Source.Customs
+namespace Editor.SceneViewEditor.Source.Windows
 {
     public class WindowHandler
     {
         private readonly List<IWindow> _customWindows = new List<IWindow>();
         private readonly Window.Factory _factory;
         private readonly Camera _camera;
+        private readonly Vector2 _defaultWindowSize = new Vector2(160, 160);
 
         public WindowHandler(Window.Factory factory, Camera camera)
         {
@@ -28,7 +29,7 @@ namespace Editor.SceneViewEditor.Source.Customs
                 var target = _customWindows.Find(window => window.Id == id);
                 if (target == null)
                 {
-                    CreateCustomWindow(transforms[i]);
+                    CreateWindow(transforms[i]);
                 }
             }
 
@@ -66,15 +67,28 @@ namespace Editor.SceneViewEditor.Source.Customs
                 => window != ignoreWindow && window.IsActive);
         }
 
-        private void CreateCustomWindow(Transform transform)
+        private void CreateWindow(Transform transform)
         {
-            var position = _camera.WorldToScreenPoint(transform.position);
-            var windowSize = new Rect(position, new Vector2(150, 160));
+            var position = WorldToScreenPoint(transform.position);
+            var windowSize = new Rect(position, _defaultWindowSize);
             var scrollPosition = new Vector2(0, int.MaxValue);
             var settings = new Window.Settings(true, windowSize, scrollPosition, transform);
 
             var customWindow = _factory.Create(settings);
             _customWindows.Add(customWindow);
+        }
+
+        private Vector2 WorldToScreenPoint(Vector2 transformPosition)
+        {
+            // GUI Y origin is at the screen top, while screen coordinates start at the bottom.
+            var position = _camera.WorldToScreenPoint(transformPosition);
+            var height = _camera.pixelHeight - position.y;
+            var offset = 25;
+
+            var newX = Mathf.Clamp(position.x, offset, _camera.pixelWidth - offset);
+            var newY = Mathf.Clamp(height, offset, _camera.pixelHeight - offset);
+
+            return new Vector2(newX, newY);
         }
     }
 }

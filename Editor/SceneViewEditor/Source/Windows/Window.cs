@@ -1,23 +1,19 @@
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
 using Editor.SceneViewEditor.Source.Extensions;
 using Editor.SceneViewEditor.Source.Interfaces;
 using UnityEditor;
 using UnityEngine;
+using Debug = UnityEngine.Debug;
 
-#if ENABLE_INPUT_SYSTEM
-using UnityEngine.InputSystem;
-#endif
-
-namespace Editor.SceneViewEditor.Source.Customs
+namespace Editor.SceneViewEditor.Source.Windows
 {
     public class Window : IWindow
     {
         public int Id => _settings.Id;
 
-        public bool IsActive
-        {
-            get => _settings.IsActive && Transform != null;
-            set => _settings.IsActive = value;
-        }
+        public bool IsActive => _settings.IsActive && Transform != null;
 
         public Transform Transform => _settings.Transform;
 
@@ -40,7 +36,7 @@ namespace Editor.SceneViewEditor.Source.Customs
             _settings.WindowSize = GUI.Window(_settings.Id,
                 _settings.WindowSize,
                 WindowCallBackFunction,
-                _settings.Id.ToString(),
+                "",
                 GUI.skin.window);
         }
 
@@ -60,11 +56,7 @@ namespace Editor.SceneViewEditor.Source.Customs
             WindowGUILayout();
 
             // Key pressed Update
-#if ENABLE_INPUT_SYSTEM
-            _isEscapeKeyPressed = Keyboard.current.escapeKey.isPressed;
-#else
-            _isEscapeKeyPressed = Input.GetKey(KeyCode.Escape);
-#endif
+            InputEventUpdate();
         }
 
         private void HandleWindowEvents()
@@ -111,14 +103,18 @@ namespace Editor.SceneViewEditor.Source.Customs
 
         private void WindowGUILayout()
         {
-            using (new GUILayout.AreaScope(new Rect(130, 0, 20, 20)))
+            using (new GUILayout.AreaScope(new Rect(140, 5, 20, 20)))
             {
-                DisplayCloseButton();
+                if (GUILayout.Button("X", GUI.skin.customStyles[0]))
+                {
+                    Close();
+                }
             }
 
             GUILayout.Space(5);
 
-            using (var scrollViewScope = new GUILayout.ScrollViewScope(_settings.ScrollPosition))
+            using (var scrollViewScope = new GUILayout.ScrollViewScope(_settings.ScrollPosition,
+                GUILayout.Height(125), GUILayout.ExpandWidth(true)))
             {
                 _settings.ScrollPosition = scrollViewScope.scrollPosition;
                 DisplayScrollViewContent();
@@ -145,23 +141,26 @@ namespace Editor.SceneViewEditor.Source.Customs
 
                 if (i == 0)
                 {
-                    transforms[i].name = GUILayout.TextField(transforms[i].name, GUI.skin.textField);
+                    transforms[i].name = GUILayout.TextField(transforms[i].name);
                 }
                 else
                 {
-                    GUILayout.Label(transforms[i].name, GUI.skin.label);
+                    GUILayout.Label(transforms[i].name);
                 }
 
                 GUILayout.EndHorizontal();
             }
         }
 
-        private void DisplayCloseButton()
+        private void InputEventUpdate()
         {
-            if (GUILayout.Button("X", GUI.skin.button))
-            {
-                Close();
-            }
+#if ENABLE_INPUT_SYSTEM
+            _isEscapeKeyPressed = Keyboard.current.escapeKey.isPressed;
+#else
+            var e = Event.current;
+            _isEscapeKeyPressed = e.type == EventType.KeyDown &&
+                                  e.keyCode == KeyCode.Escape;
+#endif
         }
 
 

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Linq;
-using Editor.SceneViewEditor.Source.Customs;
+using Editor.SceneViewEditor.Source.Windows;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -15,8 +15,8 @@ namespace Editor.SceneViewEditor.Tests
         [Test]
         public void WindowHandler_Setup()
         {
-            var camera = SceneView.GetAllSceneCameras().FirstOrDefault();
             var windowFactory = new Window.Factory();
+            var camera = SceneView.GetAllSceneCameras().FirstOrDefault();
             var mockHandler = new WindowHandler(windowFactory, camera);
 
             Assert.IsNotNull(mockHandler);
@@ -66,7 +66,7 @@ namespace Editor.SceneViewEditor.Tests
             var mockTransform = new GameObject().transform;
             Selection.SetActiveObjectWithContext(mockTransform, null);
             mockHandler.OnSceneSelectedObjects();
-            
+
             Object.DestroyImmediate(mockTransform.gameObject);
 
             var onGUIUpdate = new Action<SceneView>(delegate { mockHandler.OnSceneGUIUpdate(); });
