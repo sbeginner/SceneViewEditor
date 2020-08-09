@@ -6,9 +6,9 @@ name: CI
 # events but only for the sbeginner-patch-1 branch
 on:
   push:
-    branches: [ sbeginner-patch-1 ]
+    branches: [ master ]
   pull_request:
-    branches: [ sbeginner-patch-1 ]
+    branches: [ master ]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
