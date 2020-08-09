@@ -98,7 +98,7 @@ namespace Editor.SceneViewEditor.Source.Windows
                 return WorldToScreenPoint(newPosition);
             }
 
-            return position;
+            return WorldToScreenPoint(position);
         }
 
         private Vector2 WorldToScreenPoint(Vector2 transformPosition)
