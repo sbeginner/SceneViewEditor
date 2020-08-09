@@ -69,7 +69,7 @@ namespace Editor.SceneViewEditor.Source.Windows
 
         private void CreateWindow(Transform transform)
         {
-            var position = WorldToScreenPoint(transform.position);
+            var position = FindTopRightCornerPositionInTransform(transform);
             var windowSize = new Rect(position, _defaultWindowSize);
             var scrollPosition = new Vector2(0, int.MaxValue);
             var settings = new Window.Settings(true, windowSize, scrollPosition, transform);
@@ -78,15 +78,38 @@ namespace Editor.SceneViewEditor.Source.Windows
             _customWindows.Add(customWindow);
         }
 
+        private Vector2 FindTopRightCornerPositionInTransform(Transform transform)
+        {
+            var position = transform.position;
+
+            var isRectTransformExist = transform.TryGetComponent<RectTransform>(out var rectTransform);
+            if (isRectTransformExist)
+            {
+                var corner = new Vector3[4];
+                rectTransform.GetWorldCorners(corner); // Unity api: out variable.
+                return WorldToScreenPoint(corner[2]);
+            }
+
+            var isRendererExist = transform.TryGetComponent<Renderer>(out var renderer);
+            if (isRendererExist)
+            {
+                var halfBoundsSize = renderer.bounds.size * .5f;
+                var newPosition = transform.position + halfBoundsSize;
+                return WorldToScreenPoint(newPosition);
+            }
+
+            return position;
+        }
+
         private Vector2 WorldToScreenPoint(Vector2 transformPosition)
         {
             // GUI Y origin is at the screen top, while screen coordinates start at the bottom.
+            var offset = 21; // The fixed upper offset in scene view.
             var position = _camera.WorldToScreenPoint(transformPosition);
             var height = _camera.pixelHeight - position.y;
-            var offset = 25;
 
             var newX = Mathf.Clamp(position.x, offset, _camera.pixelWidth - offset);
-            var newY = Mathf.Clamp(height, offset, _camera.pixelHeight - offset);
+            var newY = Mathf.Clamp(height + offset, offset, _camera.pixelHeight - offset);
 
             return new Vector2(newX, newY);
         }
