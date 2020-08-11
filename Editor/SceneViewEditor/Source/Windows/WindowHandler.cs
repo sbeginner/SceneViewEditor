@@ -38,11 +38,6 @@ namespace Editor.SceneViewEditor.Source.Windows
 
         public void OnSceneGUIUpdate()
         {
-            if (Event.current.type != EventType.Layout)
-            {
-                return;
-            }
-
             for (var i = 0; i < _customWindows.Count; i++)
             {
                 if (!_customWindows[i].IsActive)
@@ -52,11 +47,11 @@ namespace Editor.SceneViewEditor.Source.Windows
                         var window = GetNextHandleWindow(_customWindows[i]);
                         Selection.SetActiveObjectWithContext(window?.Transform, null);
                     }
-
+            
                     _customWindows.RemoveAt(i);
                     continue;
                 }
-
+            
                 _customWindows[i].Display();
             }
         }
@@ -72,7 +67,8 @@ namespace Editor.SceneViewEditor.Source.Windows
             var position = FindTopRightCornerPositionInTransform(transform);
             var windowSize = new Rect(position, _defaultWindowSize);
             var scrollPosition = new Vector2(0, int.MaxValue);
-            var settings = new Window.Settings(true, windowSize, scrollPosition, transform);
+            var settings = new Window.Settings(transform.GetInstanceID(),
+                true, windowSize, scrollPosition, transform);
 
             var customWindow = _factory.Create(settings);
             _customWindows.Add(customWindow);

@@ -1,11 +1,7 @@
-#if ENABLE_INPUT_SYSTEM
-using UnityEngine.InputSystem;
-#endif
 using Editor.SceneViewEditor.Source.Extensions;
 using Editor.SceneViewEditor.Source.Interfaces;
 using UnityEditor;
 using UnityEngine;
-using Debug = UnityEngine.Debug;
 
 namespace Editor.SceneViewEditor.Source.Windows
 {
@@ -17,9 +13,11 @@ namespace Editor.SceneViewEditor.Source.Windows
 
         public Transform Transform => _settings.Transform;
 
+        private static readonly Rect CloseButtonPosition = new Rect(140, 5, 15, 15);
         private static bool _isCloseWindowExecuted;
         private static bool _isEscapeKeyPressed;
         private readonly Settings _settings;
+        private bool _isFocused;
 
         private Window(Settings settings)
         {
@@ -36,8 +34,7 @@ namespace Editor.SceneViewEditor.Source.Windows
             _settings.WindowSize = GUI.Window(_settings.Id,
                 _settings.WindowSize,
                 WindowCallBackFunction,
-                "",
-                GUI.skin.window);
+                new GUIContent("", _settings.TransformName));
         }
 
         public void Close()
@@ -47,10 +44,9 @@ namespace Editor.SceneViewEditor.Source.Windows
 
         private void WindowCallBackFunction(int transformId)
         {
-            // The execute order is important.
             // Handle Window Event
             HandleWindowEvents();
-            HandleFocusedWindowEvents(transformId);
+            HandleFocusedWindowEvents();
 
             // Layout
             WindowGUILayout();
@@ -61,27 +57,41 @@ namespace Editor.SceneViewEditor.Source.Windows
 
         private void HandleWindowEvents()
         {
-            if (Event.current.type != EventType.MouseDown)
+            if (Event.current.type == EventType.MouseDown)
             {
-                return;
+                Selection.SetActiveObjectWithContext(_settings.Transform, null);
             }
-
-            Selection.SetActiveObjectWithContext(_settings.Transform, null);
         }
 
-        private void HandleFocusedWindowEvents(int transformId)
+        private void HandleFocusedWindowEvents()
         {
-            var isFocused = Selection.activeTransform != null &&
-                            Selection.activeTransform.GetInstanceID() == transformId;
-            if (!isFocused)
+            if (Event.current.type != EventType.Layout)
             {
                 return;
             }
 
-            GUI.FocusWindow(transformId);
-            GUI.BringWindowToFront(transformId);
+            _isFocused = IsFocusedFlagUpdate(_isFocused);
+            if (!_isFocused)
+            {
+                return;
+            }
+
+            GUI.FocusWindow(_settings.Id);
+            GUI.BringWindowToFront(_settings.Id);
 
             UseEscapeKeyCloseWindow();
+        }
+
+        private bool IsFocusedFlagUpdate(bool isFocused)
+        {
+            // TODO: The rules are too complex
+            if (!(isFocused && Selection.activeTransform == null))
+            {
+                isFocused = Selection.activeTransform != null &&
+                            Selection.activeTransform.GetInstanceID() == _settings.Id;
+            }
+
+            return isFocused;
         }
 
         private void UseEscapeKeyCloseWindow()
@@ -103,21 +113,37 @@ namespace Editor.SceneViewEditor.Source.Windows
 
         private void WindowGUILayout()
         {
-            using (new GUILayout.AreaScope(new Rect(140, 5, 20, 20)))
+            if (GUI.Button(CloseButtonPosition, "", GUI.skin.customStyles[0]))
             {
-                if (GUILayout.Button("X", GUI.skin.customStyles[0]))
-                {
-                    Close();
-                }
+                Close();
             }
 
-            GUILayout.Space(5);
-
-            using (var scrollViewScope = new GUILayout.ScrollViewScope(_settings.ScrollPosition,
-                GUILayout.Height(125), GUILayout.ExpandWidth(true)))
+            if (_isFocused)
             {
-                _settings.ScrollPosition = scrollViewScope.scrollPosition;
-                DisplayScrollViewContent();
+                using (var scrollViewScope = new GUILayout.ScrollViewScope(_settings.ScrollPosition))
+                {
+                    _settings.ScrollPosition = scrollViewScope.scrollPosition;
+                    DisplayScrollViewContent();
+                }
+            }
+            else
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.FlexibleSpace();
+
+                if (_settings.TransformName.Length > 15)
+                {
+                    var name = string.Format(
+                        $"{_settings.TransformName.Substring(0, 15)}...");
+                    GUILayout.Label(name);
+                }
+                else
+                {
+                    GUILayout.Label(_settings.TransformName);
+                }
+
+                GUILayout.FlexibleSpace();
+                GUILayout.EndHorizontal();
             }
 
             GUI.DragWindow();
@@ -126,54 +152,63 @@ namespace Editor.SceneViewEditor.Source.Windows
         private void DisplayScrollViewContent()
         {
             var transforms = _settings.Transform.GetAllParentsAndSelf();
+            var transformNames = _settings.Transform.GetAllParentNamesAndSelf();
+
             for (var i = transforms.Count - 1; i >= 0; i--)
             {
-                GUILayout.BeginHorizontal();
-
-                if (GUILayout.Button("✄", GUILayout.Width(20)))
+                using (new GUILayout.HorizontalScope())
                 {
-                    transforms[i].name.CopyToClipboard();
-                    Selection.SetActiveObjectWithContext(transforms[i], null);
-                    GUI.FocusWindow(transforms[i].GetInstanceID());
-
-                    Debug.Log($"[#{transforms[i].name}] copy success!");
+                    ScrollViewElement(transforms[i], transformNames[i], i == 0);
                 }
+            }
+        }
 
-                if (i == 0)
+        private static void ScrollViewElement(Transform transform, string transformName, bool isEditable)
+        {
+            if (GUILayout.Button("✄", GUILayout.Width(20)))
+            {
+                transformName.CopyToClipboard();
+                Selection.SetActiveObjectWithContext(transform, null);
+                GUI.FocusWindow(transform.GetInstanceID());
+
+                Debug.LogFormat($"[#{transformName}] copy success!");
+            }
+
+            if (isEditable)
+            {
+                var text = GUILayout.TextField(transformName);
+                if (transformName != text)
                 {
-                    transforms[i].name = GUILayout.TextField(transforms[i].name);
+                    transform.name = text;
                 }
-                else
-                {
-                    GUILayout.Label(transforms[i].name);
-                }
-
-                GUILayout.EndHorizontal();
+            }
+            else
+            {
+                GUILayout.Label(transformName);
             }
         }
 
         private void InputEventUpdate()
         {
-#if ENABLE_INPUT_SYSTEM
-            _isEscapeKeyPressed = Keyboard.current.escapeKey.isPressed;
-#else
             var e = Event.current;
             _isEscapeKeyPressed = e.type == EventType.KeyDown &&
                                   e.keyCode == KeyCode.Escape;
-#endif
         }
 
 
         public class Settings
         {
-            public int Id => Transform.GetInstanceID();
+            public int Id { get; }
             public bool IsActive { get; set; }
             public Rect WindowSize { get; set; }
             public Vector2 ScrollPosition { get; set; }
             public Transform Transform { get; }
+            public string TransformName => _transformNameCache ?? (_transformNameCache = Transform.name);
+            private string _transformNameCache;
 
-            public Settings(bool isActive, Rect windowSize, Vector2 scrollPosition, Transform transform)
+            public Settings(int id, bool isActive, Rect windowSize, Vector2 scrollPosition, Transform transform)
             {
+                Id = id;
                 IsActive = isActive;
                 WindowSize = windowSize;
                 ScrollPosition = scrollPosition;
