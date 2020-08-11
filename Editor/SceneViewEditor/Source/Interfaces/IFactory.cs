@@ -1,7 +1,9 @@
+using System;
+
 namespace Editor.SceneViewEditor.Source.Interfaces
 {
     public interface IFactory<in T2, out T1>
     {
-        T1 Create(T2 data);
+        T1 Create(T2 data, Action<T1> action);
     }
 }

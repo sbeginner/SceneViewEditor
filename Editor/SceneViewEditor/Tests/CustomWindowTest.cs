@@ -27,13 +27,12 @@ namespace Editor.SceneViewEditor.Tests
         public void Window_Setup_With_All_Default_Settings()
         {
             var mockTransform = new GameObject().transform;
-            var settings = new Window.Settings(mockTransform.GetInstanceID(),
-                true,
+            var settings = new Window.Settings(
                 Rect.zero,
                 Vector2.zero,
                 mockTransform);
 
-            var window = _windowFactory.Create(settings);
+            var window = _windowFactory.Create(settings, null);
 
             Assert.IsTrue(window.IsActive);
             Assert.IsTrue(window.Id == mockTransform.GetInstanceID());
@@ -43,15 +42,14 @@ namespace Editor.SceneViewEditor.Tests
         [Test]
         public void Window_Setup_With_Missing_Transform()
         {
-            var settings = new Window.Settings(0,
-                true,
+            var settings = new Window.Settings(
                 Rect.zero,
                 Vector2.zero,
                 null);
 
-            var window = _windowFactory.Create(settings);
+            var window = _windowFactory.Create(settings, null);
 
-            Assert.IsFalse(window.IsActive);
+            Assert.IsTrue(window.IsDestroyable);
             UnityEngine.Assertions.Assert.IsNull(window.Transform);
         }
 
@@ -59,13 +57,12 @@ namespace Editor.SceneViewEditor.Tests
         public void Window_Close()
         {
             var mockTransform = new GameObject().transform;
-            var settings = new Window.Settings(mockTransform.GetInstanceID(),
-                true,
+            var settings = new Window.Settings(
                 Rect.zero,
                 Vector2.zero,
                 mockTransform);
 
-            var window = _windowFactory.Create(settings);
+            var window = _windowFactory.Create(settings, null);
 
             window.Close();
 

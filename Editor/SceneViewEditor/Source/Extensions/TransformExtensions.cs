@@ -9,7 +9,8 @@ namespace Editor.SceneViewEditor.Source.Extensions
         private static readonly Dictionary<int, List<Transform>> TransformsCache =
             new Dictionary<int, List<Transform>>();
 
-        private static Dictionary<int, List<string>> TranformNamesCache = new Dictionary<int, List<string>>();
+        private static readonly Dictionary<int, List<string>> TransformNamesCache =
+            new Dictionary<int, List<string>>();
 
         static TransformExtensions()
         {
@@ -17,23 +18,38 @@ namespace Editor.SceneViewEditor.Source.Extensions
             EditorApplication.hierarchyChanged += DestroyTransformsCache;
         }
 
-        private static void DestroyTransformsCache()
-        {
-            TransformsCache.Clear();
-            TranformNamesCache.Clear();
-        }
-
         public static IList<Transform> GetAllParentsAndSelf(this Transform transformNode)
         {
             var id = transformNode.GetInstanceID();
-            if (TransformsCache.ContainsKey(id))
+            if (TransformsCache.TryGetValue(id, out var result))
             {
-                return TransformsCache[id];
+                return result;
             }
 
+            Core(transformNode);
+
+            return TransformsCache[id];
+        }
+
+        public static IList<string> GetAllParentNamesAndSelf(this Transform transformNode)
+        {
+            var id = transformNode.GetInstanceID();
+            if (TransformNamesCache.TryGetValue(id, out var result))
+            {
+                return result;
+            }
+
+            Core(transformNode);
+
+            return TransformNamesCache[id];
+        }
+
+        private static void Core(Transform transformNode)
+        {
+            var id = transformNode.GetInstanceID();
             var transforms = new List<Transform>();
             var transformNames = new List<string>();
-            
+
             while (transformNode.parent != null)
             {
                 transforms.Add(transformNode);
@@ -46,15 +62,13 @@ namespace Editor.SceneViewEditor.Source.Extensions
             transformNames.Add(transformNode.name);
 
             TransformsCache[id] = transforms;
-            TranformNamesCache[id] = transformNames;
-
-            return transforms;
+            TransformNamesCache[id] = transformNames;
         }
 
-        public static IList<string> GetAllParentNamesAndSelf(this Transform transformNode)
+        private static void DestroyTransformsCache()
         {
-            return TranformNamesCache[transformNode.GetInstanceID()];
+            TransformsCache.Clear();
+            TransformNamesCache.Clear();
         }
-
     }
 }

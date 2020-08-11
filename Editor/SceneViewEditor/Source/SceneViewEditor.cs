@@ -17,8 +17,7 @@ namespace Editor.SceneViewEditor.Source
 
         public State CurrentState { get; private set; } = State.None;
 
-        private readonly string _customGUISkinUri = Path.Combine("Assets",
-            "Scripts/Editor/SceneViewEditor/Skins",
+        private readonly string _customGUISkinUri = Path.Combine("Assets/Scripts/Editor/SceneViewEditor/Skins",
             "CustomGUISkin.guiskin");
 
         private WindowHandler _windowHandler;

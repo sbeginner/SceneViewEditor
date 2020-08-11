@@ -5,8 +5,11 @@ namespace Editor.SceneViewEditor.Source.Interfaces
     public interface IWindow
     {
         int Id { get; }
-        bool IsActive { get; }
         Transform Transform { get; }
+        
+        bool IsActive { get; set; }
+        bool IsDestroyable { get; }
+        
         void Display();
         void Close();
     }

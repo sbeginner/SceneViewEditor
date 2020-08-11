@@ -1,3 +1,4 @@
+using System;
 using Editor.SceneViewEditor.Source.Extensions;
 using Editor.SceneViewEditor.Source.Interfaces;
 using UnityEditor;
@@ -5,23 +6,29 @@ using UnityEngine;
 
 namespace Editor.SceneViewEditor.Source.Windows
 {
-    public class Window : IWindow
+    public partial class Window : IWindow
     {
         public int Id => _settings.Id;
-
-        public bool IsActive => _settings.IsActive && Transform != null;
-
         public Transform Transform => _settings.Transform;
+
+        public bool IsActive
+        {
+            get => _settings.IsActive;
+            set => _settings.IsActive = value;
+        }
+
+        public bool IsDestroyable => _settings.Transform == null;
 
         private static readonly Rect CloseButtonPosition = new Rect(140, 5, 15, 15);
         private static bool _isCloseWindowExecuted;
         private static bool _isEscapeKeyPressed;
         private readonly Settings _settings;
-        private bool _isFocused;
+        private readonly Action<IWindow> _closeCallBackFunction;
 
-        private Window(Settings settings)
+        private Window(Settings settings, Action<IWindow> closeCallBackFunction)
         {
             _settings = settings;
+            _closeCallBackFunction = closeCallBackFunction;
         }
 
         public void Display()
@@ -32,14 +39,13 @@ namespace Editor.SceneViewEditor.Source.Windows
             }
 
             _settings.WindowSize = GUI.Window(_settings.Id,
-                _settings.WindowSize,
-                WindowCallBackFunction,
-                new GUIContent("", _settings.TransformName));
+                _settings.WindowSize, WindowCallBackFunction, "");
         }
 
         public void Close()
         {
             _settings.IsActive = false;
+            _closeCallBackFunction?.Invoke(this);
         }
 
         private void WindowCallBackFunction(int transformId)
@@ -57,10 +63,12 @@ namespace Editor.SceneViewEditor.Source.Windows
 
         private void HandleWindowEvents()
         {
-            if (Event.current.type == EventType.MouseDown)
+            if (Event.current.type != EventType.MouseDown)
             {
-                Selection.SetActiveObjectWithContext(_settings.Transform, null);
+                return;
             }
+
+            Selection.SetActiveObjectWithContext(_settings.Transform, null);
         }
 
         private void HandleFocusedWindowEvents()
@@ -70,8 +78,8 @@ namespace Editor.SceneViewEditor.Source.Windows
                 return;
             }
 
-            _isFocused = IsFocusedFlagUpdate(_isFocused);
-            if (!_isFocused)
+            IsFocusedFlagUpdate();
+            if (!_settings.IsFocused)
             {
                 return;
             }
@@ -82,16 +90,15 @@ namespace Editor.SceneViewEditor.Source.Windows
             UseEscapeKeyCloseWindow();
         }
 
-        private bool IsFocusedFlagUpdate(bool isFocused)
+        private void IsFocusedFlagUpdate()
         {
-            // TODO: The rules are too complex
-            if (!(isFocused && Selection.activeTransform == null))
+            if (_settings.IsFocused && Selection.activeTransform == null)
             {
-                isFocused = Selection.activeTransform != null &&
-                            Selection.activeTransform.GetInstanceID() == _settings.Id;
+                return;
             }
 
-            return isFocused;
+            _settings.IsFocused = Selection.activeTransform != null &&
+                                  Selection.activeTransform.GetInstanceID() == _settings.Id;
         }
 
         private void UseEscapeKeyCloseWindow()
@@ -118,7 +125,7 @@ namespace Editor.SceneViewEditor.Source.Windows
                 Close();
             }
 
-            if (_isFocused)
+            if (_settings.IsFocused)
             {
                 using (var scrollViewScope = new GUILayout.ScrollViewScope(_settings.ScrollPosition))
                 {
@@ -169,7 +176,6 @@ namespace Editor.SceneViewEditor.Source.Windows
             {
                 transformName.CopyToClipboard();
                 Selection.SetActiveObjectWithContext(transform, null);
-                GUI.FocusWindow(transform.GetInstanceID());
 
                 Debug.LogFormat($"[#{transformName}] copy success!");
             }
@@ -188,7 +194,7 @@ namespace Editor.SceneViewEditor.Source.Windows
             }
         }
 
-        private void InputEventUpdate()
+        private static void InputEventUpdate()
         {
             var e = Event.current;
             _isEscapeKeyPressed = e.type == EventType.KeyDown &&
@@ -196,32 +202,13 @@ namespace Editor.SceneViewEditor.Source.Windows
         }
 
 
-        public class Settings
-        {
-            public int Id { get; }
-            public bool IsActive { get; set; }
-            public Rect WindowSize { get; set; }
-            public Vector2 ScrollPosition { get; set; }
-            public Transform Transform { get; }
-            public string TransformName => _transformNameCache ?? (_transformNameCache = Transform.name);
-            private string _transformNameCache;
-
-            public Settings(int id, bool isActive, Rect windowSize, Vector2 scrollPosition, Transform transform)
-            {
-                Id = id;
-                IsActive = isActive;
-                WindowSize = windowSize;
-                ScrollPosition = scrollPosition;
-                Transform = transform;
-            }
-        }
-
-
         public class Factory : IFactory<Settings, IWindow>
         {
-            public IWindow Create(Settings settings)
+            private WindowHandler _handler;
+
+            public IWindow Create(Settings settings, Action<IWindow> closeCallback)
             {
-                return new Window(settings);
+                return new Window(settings, closeCallback);
             }
         }
     }
