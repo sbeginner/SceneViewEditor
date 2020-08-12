@@ -42,6 +42,11 @@ namespace Editor.SceneViewEditor.Source.Windows
                 WindowCallBackFunction, "");
         }
 
+        public void SetWindowSize(Rect windowSize)
+        {
+            _settings.WindowSize = windowSize;
+        }
+
         public void Close()
         {
             _settings.IsActive = false;

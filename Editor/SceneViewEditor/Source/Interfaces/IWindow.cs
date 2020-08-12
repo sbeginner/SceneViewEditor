@@ -6,11 +6,12 @@ namespace Editor.SceneViewEditor.Source.Interfaces
     {
         int Id { get; }
         Transform Transform { get; }
-        
+
         bool IsActive { get; set; }
         bool IsDestroyable { get; }
-        
+
         void Display();
+        void SetWindowSize(Rect windowSize);
         void Close();
     }
 }

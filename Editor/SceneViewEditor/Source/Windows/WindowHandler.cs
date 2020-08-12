@@ -102,6 +102,10 @@ namespace Editor.SceneViewEditor.Source.Windows
 
         private void HandleNextWindow(IWindow ignoreWindow)
         {
+            var position = FindTopRightCornerPositionInTransform(ignoreWindow.Transform);
+            var windowSize = new Rect(position, _defaultWindowSize);
+            ignoreWindow.SetWindowSize(windowSize);
+
             var window = GetNextHandleWindow(ignoreWindow);
             Selection.SetActiveObjectWithContext(window?.Transform, null);
         }
