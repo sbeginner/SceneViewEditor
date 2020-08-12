@@ -8,9 +8,6 @@ namespace Editor.SceneViewEditor.Source.Windows
 {
     public partial class Window : IWindow
     {
-        public int Id => _settings.Id;
-        public Transform Transform => _settings.Transform;
-
         public bool IsActive
         {
             get => _settings.IsActive;
@@ -18,6 +15,8 @@ namespace Editor.SceneViewEditor.Source.Windows
         }
 
         public bool IsDestroyable => _settings.Transform == null;
+        public int Id => _settings.Id;
+        public Transform Transform => _settings.Transform;
 
         private static readonly Rect CloseButtonPosition = new Rect(140, 5, 15, 15);
         private static bool _isCloseWindowExecuted;
@@ -39,7 +38,8 @@ namespace Editor.SceneViewEditor.Source.Windows
             }
 
             _settings.WindowSize = GUI.Window(_settings.Id,
-                _settings.WindowSize, WindowCallBackFunction, "");
+                _settings.WindowSize,
+                WindowCallBackFunction, "");
         }
 
         public void Close()
@@ -52,70 +52,9 @@ namespace Editor.SceneViewEditor.Source.Windows
         {
             // Handle Window Event
             HandleWindowEvents();
-            HandleFocusedWindowEvents();
 
             // Layout
             WindowGUILayout();
-
-            // Key pressed Update
-            InputEventUpdate();
-        }
-
-        private void HandleWindowEvents()
-        {
-            if (Event.current.type != EventType.MouseDown)
-            {
-                return;
-            }
-
-            Selection.SetActiveObjectWithContext(_settings.Transform, null);
-        }
-
-        private void HandleFocusedWindowEvents()
-        {
-            if (Event.current.type != EventType.Layout)
-            {
-                return;
-            }
-
-            IsFocusedFlagUpdate();
-            if (!_settings.IsFocused)
-            {
-                return;
-            }
-
-            GUI.FocusWindow(_settings.Id);
-            GUI.BringWindowToFront(_settings.Id);
-
-            UseEscapeKeyCloseWindow();
-        }
-
-        private void IsFocusedFlagUpdate()
-        {
-            if (_settings.IsFocused && Selection.activeTransform == null)
-            {
-                return;
-            }
-
-            _settings.IsFocused = Selection.activeTransform != null &&
-                                  Selection.activeTransform.GetInstanceID() == _settings.Id;
-        }
-
-        private void UseEscapeKeyCloseWindow()
-        {
-            if (!_isEscapeKeyPressed || _isCloseWindowExecuted)
-            {
-                if (!_isEscapeKeyPressed)
-                {
-                    _isCloseWindowExecuted = false;
-                }
-
-                return;
-            }
-
-            _isCloseWindowExecuted = true;
-
-            Close();
         }
 
         private void WindowGUILayout()
@@ -151,6 +90,12 @@ namespace Editor.SceneViewEditor.Source.Windows
 
                 GUILayout.FlexibleSpace();
                 GUILayout.EndHorizontal();
+            }
+
+            if (_settings.IsFocused)
+            {
+                GUI.FocusWindow(_settings.Id);
+                GUI.BringWindowToFront(_settings.Id);
             }
 
             GUI.DragWindow();
@@ -194,11 +139,70 @@ namespace Editor.SceneViewEditor.Source.Windows
             }
         }
 
+        private void HandleWindowEvents()
+        {
+            IsFocusedFlagUpdate();
+            UseEscapeKeyCloseWindow();
+
+            SelectedWindow();
+            InputEventUpdate();
+        }
+
+        private void IsFocusedFlagUpdate()
+        {
+            if (Event.current.type != EventType.Layout)
+            {
+                return;
+            }
+
+            if (_settings.IsFocused && Selection.activeTransform == null)
+            {
+                return;
+            }
+
+            _settings.IsFocused = Selection.activeTransform != null &&
+                                  Selection.activeTransform.GetInstanceID() == _settings.Id;
+        }
+
+        private void UseEscapeKeyCloseWindow()
+        {
+            if (Event.current.type != EventType.Layout)
+            {
+                return;
+            }
+
+            if (!_isEscapeKeyPressed)
+            {
+                _isCloseWindowExecuted = false;
+                return;
+            }
+
+            if (!_isCloseWindowExecuted)
+            {
+                _isCloseWindowExecuted = true;
+                Close();
+            }
+        }
+
+        private void SelectedWindow()
+        {
+            if (Event.current.type != EventType.MouseDown)
+            {
+                return;
+            }
+
+            Selection.SetActiveObjectWithContext(_settings.Transform, null);
+        }
+
         private static void InputEventUpdate()
         {
-            var e = Event.current;
-            _isEscapeKeyPressed = e.type == EventType.KeyDown &&
-                                  e.keyCode == KeyCode.Escape;
+            if (Event.current.type != EventType.KeyUp)
+            {
+                _isEscapeKeyPressed = false;
+                return;
+            }
+
+            _isEscapeKeyPressed = Event.current.keyCode == KeyCode.Escape;
         }
 
 
